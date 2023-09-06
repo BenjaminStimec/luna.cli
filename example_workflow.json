@@ -1,0 +1,12 @@
+{
+    "name": "MyTask",
+    "modules": {
+        "my_module": {
+        "hello_world": ["John"],
+        "another_function": ["arg1", "arg2"]
+        },
+        "another_module": {
+        "some_function": ["argA"]
+        }
+    }
+}
