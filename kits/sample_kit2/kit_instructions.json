@@ -1,0 +1,21 @@
+{
+    "module1": {
+        "reverse": {
+            "description": "Reverses the given text",
+            "args": {
+                "text": "The text to reverse"
+            },
+            "output": "The reversed text"
+        }
+    },
+    "module2": {
+        "save_to_file": {
+            "description": "Saves text to a file",
+            "args": {
+                "text": "The text to save",
+                "file_name": "The name of the file to save the text in"
+            },
+            "output": "None"
+        }
+    }
+}

@@ -3,3 +3,5 @@
 /Lib/
 /Include/
 /.vscode/
+**/__pycache__/
+/.idea/

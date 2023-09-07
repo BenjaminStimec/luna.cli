@@ -1,0 +1,20 @@
+{
+    "module1": {
+        "greet": {
+            "description": "Greets the person with their name",
+            "args": {
+                "name": "The name of the person to greet"
+            },
+            "output": "A greeting string"
+        }
+    },
+    "module2": {
+        "capitalize": {
+            "description": "Converts the given text to uppercase",
+            "args": {
+                "text": "The text to capitalize"
+            },
+            "output": "The capitalized text"
+        }
+    }
+}
