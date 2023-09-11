@@ -78,6 +78,7 @@ def execute_workflow(workflow, kit_folder, vars):
             last_output = result
             print(result)
 
+import functions
 
 if __name__ == "__main__":
     operation = load_operation("operation.json")
@@ -87,4 +88,4 @@ if __name__ == "__main__":
         vars = mission.get("vars", {})
         workflow = mission["workflow"]
         print("executing mission: " + mission['name'])
-        execute_workflow(workflow, operation['kit_folder'], vars)
+        functions.execute_workflow(workflow, operation['kit_folder'], vars)
