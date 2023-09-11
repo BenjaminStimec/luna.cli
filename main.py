@@ -56,12 +56,12 @@ def execute_workflow(workflow, kit_folder, vars):
         last_output = None
         for i, segment in enumerate(segments):
             if segment.startswith("$") and last_output != None:
-                handle_variable_assignment(segment, last_output, vars);
-                continue;
+                handle_variable_assignment(segment, last_output, vars)
+                continue
             if(segment.startswith("[")):
-                continue;
+                continue
             elif(segment.startswith("await")):
-                continue;
+                continue
             func_str, *args_str = segment.split("(")
             args_str = "".join(args_str)[:-1]  # Remove closing parenthesis and reassemble
 
