@@ -1,9 +1,9 @@
 {
     "name": "SampleMission",
     "vars": {
-        "name_var": "=>"
+        "name_var": "=>$test%ass(()))("
     },
     "workflow": [
-        "sample_kit1.module1.greet($name_var)=>sample_kit1.module2.capitalize(%1)=>sample_kit2.module1.reverse(%1)=>sample_kit2.module2.save_to_file(%1, 'output.txt')"
+        "sample_kit1.module1.greet('=>$test%ass(()))(''''''''''\\')=>sample_kit1.module2.capitalize(%1)=>sample_kit2.module1.reverse(%1)=>sample_kit2.module2.save_to_file(%1, 'output.txt')"
     ]
 }

@@ -11,11 +11,12 @@ def execute_workflow(workflow, kit_folder, vars):
     for step in workflow:
         execute=False
         isString=False
+        isStringFalseNegative=False
         module_name=""
         isArg=False
         isVar=False
         var=""
-        last_output="output"
+        last_output=None
         function_name=""
         args=[]
         indent = 0
@@ -31,21 +32,35 @@ def execute_workflow(workflow, kit_folder, vars):
                 if(i=='\'' and not isString):
                     isString=True
                     var=''
-                elif(isString):
-                    if(i=='\''):
+                elif(isStringFalseNegative):
+                    if(i == ','): 
                         args.append(var)
                         var=''
                         isString=False
-                    var+=i
+                    elif(i == ')'):
+                        args.append(var)
+                        var=''
+                        isString=False
+                        indent-=1
+                        if(indent == 0):
+                            isVar=False
+                    else:
+                        var+='\''+i
+                    isStringFalseNegative=False
+                elif(isString):
+                    if(i=='\''):
+                        isStringFalseNegative=True
+                    else:
+                        var+=i
+
                 else:
                     if(i=='('):
                         indent+=1
-
                     elif(i=='$'):
                         pass
                     elif(i=='%'):
                         isArg=True
-                    elif(i not in [',',')']):
+                    elif(i  == ',' or i == ')'):
                         var+=i
                     else:
                         if(isArg):
@@ -58,7 +73,7 @@ def execute_workflow(workflow, kit_folder, vars):
                             variable=vars.get(var)
                             if(variable):
                                 args.append(variable)
-                        var=''
+                        var=""
                     if(i==')'):
                         indent-=1
                         if(indent == 0):
@@ -74,5 +89,4 @@ def execute_workflow(workflow, kit_folder, vars):
                     function_name=""
                 else:
                     function_name+=i
-            
         run_function(kit_folder,module_name,function_name,args)
