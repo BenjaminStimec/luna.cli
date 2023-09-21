@@ -3,18 +3,26 @@
         "greet": {
             "description": "Greets the person with their name",
             "args": {
-                "name": "The name of the person to greet"
+                "name": {
+                    "type": "string",
+                    "description": "The name of the person to greet"
+                }
             },
-            "output": "A greeting string"
+            "output": "A greeting string",
+            "action": "Greeting the person by name"
         }
     },
     "module2": {
         "capitalize": {
             "description": "Converts the given text to uppercase",
             "args": {
-                "text": "The text to capitalize"
+                "text": {
+                    "type": "string",
+                    "description": "The text to capitalize"
+                }
             },
-            "output": "The capitalized text"
+            "output": "The capitalized text",
+            "action": "Converting text to uppercase"
         }
     }
 }
