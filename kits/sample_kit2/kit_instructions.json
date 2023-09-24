@@ -3,19 +3,30 @@
         "reverse": {
             "description": "Reverses the given text",
             "args": {
-                "text": "The text to reverse"
+                "text": {
+                    "type": "string",
+                    "description": "The text to reverse"
+                }
             },
-            "output": "The reversed text"
+            "output": "The reversed text",
+            "action": "Reversing the given text"
         }
     },
     "module2": {
         "save_to_file": {
             "description": "Saves text to a file",
             "args": {
-                "text": "The text to save",
-                "file_name": "The name of the file to save the text in"
+                "text": {
+                    "type": "string",
+                    "description": "The text to save"
+                },
+                "file_name": {
+                    "type": "string",
+                    "description": "The name of the file to save the text in"
+                }
             },
-            "output": "None"
+            "output": "None",
+            "action": "Saving text to a specified file"
         }
     }
 }
