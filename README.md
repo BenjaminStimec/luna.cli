@@ -23,9 +23,9 @@ sample-oeration.json
 {
     "name":"sample-operation",
     "kit_folder":"path/to/kits",
-    "kits":\["path/to/kitFolder1", "path/to/kitFolder2"\],
+    "kits":["path/to/kitFolder1", "path/to/kitFolder2"],
     "mission_folder":"path/to/missions",
-    "missions":\["path/to/missionFile1.json", "path/to/missionFile2.json"\]
+    "missions":["path/to/missionFile1.json", "path/to/missionFile2.json"]
 }
 </pre>
 ## Mission File
@@ -38,7 +38,7 @@ sample-mission.json
     "vars": {
         "name_var": "Hello world!"
     },
-    "workflows": \["sample_kit1.module1.greet($name_var)=>$abc(%1)=>sample_kit2.module2.save_to_file(%all, '1output.txt')"\]
+    "workflows": ["sample_kit1.module1.greet($name_var)=>$abc(%1)=>sample_kit2.module2.save_to_file(%all, '1output.txt')"]
 }
 </pre>
 ## Workflow Syntax and Execution
