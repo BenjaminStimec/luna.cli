@@ -1,7 +1,6 @@
 from string import printable
-from collections import namedtuple
-from pyparsing import *
-from parser_types import LiteralString, Variable, VariableAssignment, DataStream, DefaultArg, Token
+from pyparsing import Forward, Combine, Word, OneOrMore, White, Optional, Literal, delimitedList, quotedString, alphas, alphanums, Group, oneOf, SkipTo
+from parser_types import LiteralString, Variable, VariableAssignment, DataStream, DefaultArg, Token, Alias
 
 LPAR = "("
 RPAR = ")"
@@ -12,6 +11,7 @@ LBRACK = "["
 RBRACK = "]"
 LBRACE = "{"
 RBRACE = "}"
+DOTS = "..."
 
 identifier = Word(alphas, alphanums + "_")
 
@@ -35,10 +35,13 @@ variable_assignment = (
     token("output") + RPAR
 ).setParseAction(lambda t: VariableAssignment(t.var_name, t.output))
 
+alias = (identifier("kit") + DOT + identifier("module") + DOT + identifier("function")).setParseAction(lambda t: Alias(t.kit, t.module,t.function))
+
+alias = (identifier("kit") + DOT + identifier("module") + DOT + identifier("function")).setParseAction(lambda t: Alias(t.kit, t.module,t.function))
+
 function_call = Group(
-    identifier("kit") + DOT +
-    identifier("module") + DOT +
-    identifier("function") + LPAR +
+    delimitedList(identifier("kit") + DOT + identifier("module") + DOT + identifier("function") | DOTS + identifier("alias")) +
+    LPAR +
     Optional(delimitedList(literal_string | variable | data_stream | token | default_arg))("arguments") + RPAR
 )
 workflow = Group(delimitedList(function_call | variable_assignment, ARROW))("workflow")

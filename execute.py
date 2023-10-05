@@ -87,11 +87,18 @@ def apply_indexing(data, indexing):
         raise ValueError(f'Unknown expression type prefix: {expr_type_prefix}')
     return handler(data, expr_string)
 
-def execute_parsed_workflow(parsed_workflow, kits, vars):
+def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
     last_output = None
     for step in parsed_workflow[0]:
         if isinstance(step, pyparsing.results.ParseResults):
-            kit, module, function = step.kit, step.module, step.function
+            if step.alias:
+                if step.alias in alias:
+                    temp = alias[step.alias]
+                    kit, module, function = temp.kit, temp.module, temp.function
+                else:
+                    raise ValueError(f"Alias is not available")
+            else: 
+                kit, module, function = step.kit, step.module, step.function
             parsed_args = []
             for arg in step.arguments:
                 # TODO: add data stream functionality - @ notation (easy syntax for specifying sources of information examples: @file('path_to_file') @html('path_to_url')
@@ -115,6 +122,7 @@ def execute_parsed_workflow(parsed_workflow, kits, vars):
                         raise ValueError(f"Last output is not available")
                 else:
                     raise ValueError(f"Unknown argument type: {type(arg)}")
+            print("imported",kits,kit,module)
             imported_module = importlib.import_module(f"{kits}.{kit}.{module}")
             func_to_call = getattr(imported_module, function)
             last_output = func_to_call(*parsed_args)
