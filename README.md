@@ -35,10 +35,13 @@ Serves as the core execution file. Contains a "name" sectiob, a "vars" section f
 sample-mission.json
 {
     "name": "sample-mission",
+    "alias" : {
+        "greet": "sample_kit1.module1.greet"
+    },
     "vars": {
         "name_var": "Hello world!"
     },
-    "workflows": ["sample_kit1.module1.greet($name_var)=>$abc(%1)=>sample_kit2.module2.save_to_file(%all, '1output.txt')"]
+    "workflows": ["greet($name_var)=>$abc(%1)=>sample_kit2.module2.save_to_file(%all, '1output.txt')"]
 }
 </pre>
 ## Workflow Syntax and Execution
