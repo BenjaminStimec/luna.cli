@@ -2,7 +2,7 @@ import importlib
 import json
 import pyparsing
 from lxml import etree
-from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token
+from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token, FunctionIdentifier, Alias, FunctionCall, Step
 
 from jsonpath_ng import jsonpath, parse
 
@@ -89,25 +89,25 @@ def apply_indexing(data, indexing):
 
 def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
     last_output = None
-    for step in parsed_workflow[0]:
-        if isinstance(step, pyparsing.results.ParseResults):
-            if step.alias:
-                if step.alias in alias:
-                    temp = alias[step.alias]
+    for action in parsed_workflow:
+        if isinstance(action, FunctionCall):
+            if isinstance(action.identifier, Alias):
+                if action.identifier.name in alias:
+                    temp = alias[action.identifier.name]
                     kit, module, function = temp.kit, temp.module, temp.function
                 else:
                     raise ValueError(f"Alias is not available")
             else: 
-                kit, module, function = step.kit, step.module, step.function
+                kit, module, function = action.identifier.kit, action.identifier.module, action.identifier.function
             parsed_args = []
-            for arg in step.arguments:
+            for arg in action.arguments:
                 # TODO: add data stream functionality - @ notation (easy syntax for specifying sources of information examples: @file('path_to_file') @html('path_to_url')
                 if isinstance(arg, LiteralString) or isinstance(arg, DefaultArg):
                     parsed_args.append(arg.content)
                 elif isinstance(arg, Variable):
                     if arg.name in vars:
                         data = vars[arg.name]
-                        if arg.indexing is not '':
+                        if arg.indexing != '':
                             data = apply_indexing(data, arg.indexing)
                         parsed_args.append(data)
                     else:
@@ -115,7 +115,7 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
                 elif isinstance(arg, Token):
                     if(last_output != None):
                         data = last_output
-                        if arg.indexing is not '':
+                        if arg.indexing != '':
                             data = apply_indexing(data, arg.indexing)
                         parsed_args.append(data)
                     else:
@@ -126,8 +126,8 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
             imported_module = importlib.import_module(f"{kits}.{kit}.{module}")
             func_to_call = getattr(imported_module, function)
             last_output = func_to_call(*parsed_args)
-        elif isinstance(step, VariableAssignment):
+        elif isinstance(action, VariableAssignment):
             if(last_output != None):
-                vars[step.var_name] = last_output
+                vars[action.var_name] = last_output
             else:
                 raise ValueError(f"Last output is not available")
