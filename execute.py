@@ -3,6 +3,9 @@ import json
 import pyparsing
 from lxml import etree
 from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token
+import functools
+
+LRU_CACHE_LIMIT = None
 
 from jsonpath_ng import jsonpath, parse
 
@@ -87,11 +90,32 @@ def apply_indexing(data, indexing):
         raise ValueError(f'Unknown expression type prefix: {expr_type_prefix}')
     return handler(data, expr_string)
 
+@functools.lru_cache(maxsize=LRU_CACHE_LIMIT)
+def read_kit_instructions(kits,kit):
+    try:
+        with open(f"{kits}/{kit}/kit_instructions.json","r") as kit_instructions:
+            instructions = json.load(kit_instructions)
+    except:
+        raise ValueError(f"kit_instructions.json does not exist in {kits}/{kit}")
+    out = dict()
+    for module, data in instructions.items():
+        out[module] = set()
+        for function in data:
+            out[module].add(function)
+    return out
+
 def execute_parsed_workflow(parsed_workflow, kits, vars):
     last_output = None
+    kit_instructions = dict() # cache so that each kit instruction is only parsed once
     for step in parsed_workflow[0]:
         if isinstance(step, pyparsing.results.ParseResults):
             kit, module, function = step.kit, step.module, step.function
+            if(kit not in kit_instructions):
+                kit_instructions[kit]=read_kit_instructions(kits,kit) 
+            if(module not in kit_instructions[kit]):
+                raise ValueError(f"Module '{module}' is either private or does not exist in {kits}/{kit}")
+            if(function not in kit_instructions[kit][module]):
+                raise ValueError(f"Function '{function}' is either private or does not exist in {kits}/{kit}/{module}")
             parsed_args = []
             for arg in step.arguments:
                 # TODO: add data stream functionality - @ notation (easy syntax for specifying sources of information examples: @file('path_to_file') @html('path_to_url')
