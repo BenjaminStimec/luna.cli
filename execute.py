@@ -2,9 +2,11 @@ import importlib
 import json
 import pyparsing
 from lxml import etree
-from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token, FunctionIdentifier, Alias, FunctionCall, Step
-
 from jsonpath_ng import jsonpath, parse
+from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token, FunctionIdentifier, Alias, FunctionCall, Step
+import functools
+
+LRU_CACHE_LIMIT = None
 
 def handle_json(data, indexing):
     data_to_parse = ""
@@ -19,10 +21,12 @@ def handle_json(data, indexing):
         raise ValueError(f'Unviable data type for use with JSONPath: {str(data)}')
     try:
         jsonpath_expression = parse(indexing)
+        print(jsonpath_expression)
     except Exception as e:
         raise ValueError(f'Incorrect JSONPath expression: {str(indexing)}, Error: {str(e)}')
     try:
         matches = jsonpath_expression.find(data_to_parse)
+        print(matches)
         if len(matches) == 1:
             return matches[0].value
         else:
@@ -87,8 +91,23 @@ def apply_indexing(data, indexing):
         raise ValueError(f'Unknown expression type prefix: {expr_type_prefix}')
     return handler(data, expr_string)
 
+@functools.lru_cache(maxsize=LRU_CACHE_LIMIT)
+def read_kit_instructions(kits,kit):
+    try:
+        with open(f"{kits}/{kit}/kit_instructions.json","r") as kit_instructions:
+            instructions = json.load(kit_instructions)
+    except:
+        raise ValueError(f"kit_instructions.json does not exist in {kits}/{kit}")
+    out = dict()
+    for module, data in instructions.items():
+        out[module] = set()
+        for function in data:
+            out[module].add(function)
+    return out
+
 def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
     last_output = None
+    kit_instructions = dict() # cache so that each kit instruction is only parsed once
     for action in parsed_workflow:
         if isinstance(action, FunctionCall):
             if isinstance(action.identifier, Alias):
@@ -99,6 +118,12 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
                     raise ValueError(f"Alias is not available")
             else: 
                 kit, module, function = action.identifier.kit, action.identifier.module, action.identifier.function
+            if(kit not in kit_instructions):
+                kit_instructions[kit]=read_kit_instructions(kits,kit) 
+            if(module not in kit_instructions[kit]):
+                raise ValueError(f"Module '{module}' is either private or does not exist in {kits}/{kit}")
+            if(function not in kit_instructions[kit][module]):
+                raise ValueError(f"Function '{function}' is either private or does not exist in {kits}/{kit}/{module}")
             parsed_args = []
             for arg in action.arguments:
                 # TODO: add data stream functionality - @ notation (easy syntax for specifying sources of information examples: @file('path_to_file') @html('path_to_url')
