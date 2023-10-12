@@ -2,12 +2,11 @@ import importlib
 import json
 import pyparsing
 from lxml import etree
-from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token
+from jsonpath_ng import jsonpath, parse
+from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token, FunctionIdentifier, Alias, FunctionCall, Step
 import functools
 
 LRU_CACHE_LIMIT = None
-
-from jsonpath_ng import jsonpath, parse
 
 def handle_json(data, indexing):
     data_to_parse = ""
@@ -22,10 +21,12 @@ def handle_json(data, indexing):
         raise ValueError(f'Unviable data type for use with JSONPath: {str(data)}')
     try:
         jsonpath_expression = parse(indexing)
+        print(jsonpath_expression)
     except Exception as e:
         raise ValueError(f'Incorrect JSONPath expression: {str(indexing)}, Error: {str(e)}')
     try:
         matches = jsonpath_expression.find(data_to_parse)
+        print(matches)
         if len(matches) == 1:
             return matches[0].value
         else:
@@ -104,12 +105,19 @@ def read_kit_instructions(kits,kit):
             out[module].add(function)
     return out
 
-def execute_parsed_workflow(parsed_workflow, kits, vars):
+def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
     last_output = None
     kit_instructions = dict() # cache so that each kit instruction is only parsed once
-    for step in parsed_workflow[0]:
-        if isinstance(step, pyparsing.results.ParseResults):
-            kit, module, function = step.kit, step.module, step.function
+    for action in parsed_workflow:
+        if isinstance(action, FunctionCall):
+            if isinstance(action.identifier, Alias):
+                if action.identifier.name in alias:
+                    temp = alias[action.identifier.name]
+                    kit, module, function = temp.kit, temp.module, temp.function
+                else:
+                    raise ValueError(f"Alias is not available")
+            else: 
+                kit, module, function = action.identifier.kit, action.identifier.module, action.identifier.function
             if(kit not in kit_instructions):
                 kit_instructions[kit]=read_kit_instructions(kits,kit) 
             if(module not in kit_instructions[kit]):
@@ -117,14 +125,14 @@ def execute_parsed_workflow(parsed_workflow, kits, vars):
             if(function not in kit_instructions[kit][module]):
                 raise ValueError(f"Function '{function}' is either private or does not exist in {kits}/{kit}/{module}")
             parsed_args = []
-            for arg in step.arguments:
+            for arg in action.arguments:
                 # TODO: add data stream functionality - @ notation (easy syntax for specifying sources of information examples: @file('path_to_file') @html('path_to_url')
                 if isinstance(arg, LiteralString) or isinstance(arg, DefaultArg):
                     parsed_args.append(arg.content)
                 elif isinstance(arg, Variable):
                     if arg.name in vars:
                         data = vars[arg.name]
-                        if arg.indexing is not '':
+                        if arg.indexing != '':
                             data = apply_indexing(data, arg.indexing)
                         parsed_args.append(data)
                     else:
@@ -132,18 +140,19 @@ def execute_parsed_workflow(parsed_workflow, kits, vars):
                 elif isinstance(arg, Token):
                     if(last_output != None):
                         data = last_output
-                        if arg.indexing is not '':
+                        if arg.indexing != '':
                             data = apply_indexing(data, arg.indexing)
                         parsed_args.append(data)
                     else:
                         raise ValueError(f"Last output is not available")
                 else:
                     raise ValueError(f"Unknown argument type: {type(arg)}")
+            print("imported",kits,kit,module)
             imported_module = importlib.import_module(f"{kits}.{kit}.{module}")
             func_to_call = getattr(imported_module, function)
             last_output = func_to_call(*parsed_args)
-        elif isinstance(step, VariableAssignment):
+        elif isinstance(action, VariableAssignment):
             if(last_output != None):
-                vars[step.var_name] = last_output
+                vars[action.var_name] = last_output
             else:
                 raise ValueError(f"Last output is not available")

@@ -1,7 +1,6 @@
 from string import printable
-from collections import namedtuple
-from pyparsing import *
-from parser_types import LiteralString, Variable, VariableAssignment, DataStream, DefaultArg, Token
+from pyparsing import Or, Combine, Word, OneOrMore, White, Optional, Literal, delimitedList, quotedString, alphas, alphanums, oneOf, SkipTo, StringEnd
+from parser_types import LiteralString, Variable, VariableAssignment, DataStream, DefaultArg, Token, Alias, FunctionIdentifier, FunctionCall, Step
 
 LPAR = "("
 RPAR = ")"
@@ -21,24 +20,29 @@ default_arg = Combine(OneOrMore(Word(printable, excludeChars=",()") | White())).
 
 EXPR_PREFIX = oneOf('J X L')
 
-extended_expr = Group(
+extended_expr = (
     EXPR_PREFIX("expr_type") +
     LBRACE + SkipTo(RBRACE) + RBRACE
 )
  
 variable = (Literal("$") + identifier("var_name") + Optional(Literal(":") + extended_expr("index"))).setParseAction(lambda t: Variable(t.var_name, t.index))
-data_stream = (Literal("@") + identifier + LPAR + Optional(delimitedList(literal_string | variable | default_arg)) + RPAR).setParseAction(lambda t: DataStream(t[1]))
 token = (Literal("%") + Optional(extended_expr("path"))).setParseAction(lambda t: Token("%", t.path))
+data_stream = (Literal("@") + identifier("name") + LPAR + Optional(delimitedList(literal_string | variable | default_arg | token))("args") + RPAR).setParseAction(lambda t: DataStream(t.name, t.args))
+
 
 variable_assignment = (
     Literal("$") + identifier("var_name") + LPAR + 
     token("output") + RPAR
 ).setParseAction(lambda t: VariableAssignment(t.var_name, t.output))
 
-function_call = Group(
-    identifier("kit") + DOT +
-    identifier("module") + DOT +
-    identifier("function") + LPAR +
+function_identifier = (identifier("kit") + DOT + identifier("module") + DOT + identifier("function")).setParseAction(lambda t: FunctionIdentifier(t.kit, t.module,t.function))
+
+alias = Word(printable, excludeChars="(")("alias").setParseAction(lambda t: Alias(t.alias))
+
+function_call = (
+    (function_identifier | alias)("identifier") +
+    LPAR +
     Optional(delimitedList(literal_string | variable | data_stream | token | default_arg))("arguments") + RPAR
-)
-workflow = Group(delimitedList(function_call | variable_assignment, ARROW))("workflow")
+).setParseAction(lambda t: FunctionCall(t.identifier[0], t.arguments.asList()))
+
+workflow = delimitedList(variable_assignment | function_call, ARROW) + StringEnd()
