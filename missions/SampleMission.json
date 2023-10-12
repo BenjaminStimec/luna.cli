@@ -11,7 +11,7 @@
     "workflows": [
         "sample_kit1.module1.greet($name_var:J{$.abc})=>sample_kit2.module2.save_to_file(%, 'output.txt')",
         "greet($name_var)=>$abc(%)=>capitalize(%)=>sample_kit2.module1.reverse(%)=>sample_kit2.module2.save_to_file(%, '1output.txt')",
-	    "greet('abc')=>save_to_file(%, '2output.txt')",
+	    "greet($name_var:J{$.abc})=>save_to_file(%, '2output.txt')",
 	    "sample_kit1.module1.greet('==> $/abc')=>sample_kit2.module2.save_to_file(%, '3output.txt')"
     ]
 }
