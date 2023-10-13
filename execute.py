@@ -97,8 +97,10 @@ def read_kit_instructions(kits,kit):
     try:
         with open(f"{kits}/{kit}/kit_instructions.json","r") as kit_instructions:
             instructions = json.load(kit_instructions)
-    except:
+    except FileNotFoundError:
         raise ValueError(f"kit_instructions.json does not exist in {kits}/{kit}")
+    except Exception as e:
+        raise ValueError(f"An error has occurred: {e}")
     out = dict()
     for module, data in instructions.items():
         out[module] = set()
@@ -149,14 +151,15 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
                     raise ValueError(f"Alias is not available")
             else: 
                 kit, module, function = action.identifier.kit, action.identifier.module, action.identifier.function
+            
             if(kit not in kit_instructions):
                 kit_instructions[kit]=read_kit_instructions(kits,kit) 
             if(module not in kit_instructions[kit]):
                 raise ValueError(f"Module '{module}' is either private or does not exist in {kits}/{kit}")
             if(function not in kit_instructions[kit][module]):
                 raise ValueError(f"Function '{function}' is either private or does not exist in {kits}/{kit}/{module}")
+            
             parsed_args = []
-
             for arg in action.arguments:
                 parsed_args.append(parseArgument(arg, vars, last_output))
 
