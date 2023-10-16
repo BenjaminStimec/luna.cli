@@ -4,8 +4,9 @@ import parser
 import execute
 import color_printing as colp
 import sys, traceback
+import pyparsing
 
-LOGO_TEXT = """
+LOGO_TEXT = r"""
   ___     ___ ___ ______  _______    _______ ___     ___
  |   |   |   Y   |   _  \|   _   |  |   _   |   |   |   |
  |.  |   |.  |   |.  |   |.  1   |__|.  1___|.  |   |.  |
@@ -35,9 +36,20 @@ def load_operation(filename):
         operation = json.load(f)
     return operation
 
-def execute_workflow(workflow, kits, vars):
-    parsed_workflow = parser.workflow.parseString(workflow)
-    execute.execute_parsed_workflow(parsed_workflow, kits, vars)
+def execute_workflow(workflow, kits, vars, alias):
+    try:
+        parsed_workflow = parser.workflow.parseString(workflow)
+    except pyparsing.ParseException as e:
+        print(f"Failed to parse workflow at position {e.loc}. Unmatched text: {workflow[e.loc:]}")
+        sys.exit(1)
+    print("workflow parsed")
+    execute.execute_parsed_workflow(parsed_workflow, kits, vars, alias)
+
+def parse_alias(mission):
+    alias = mission.get("alias", {})
+    for name in alias:
+        alias[name] = parser.function_identifier.parseString(alias[name])[0]
+    return alias
 
 if __name__ == "__main__":
     #overrides exceptions to print in red color
@@ -50,8 +62,9 @@ if __name__ == "__main__":
     missions = load_all_missions(operation)
     for mission in missions:
         vars = mission.get("vars", {})
+        alias = parse_alias(mission)
         workflows = mission["workflows"]
         colp.sys_print("executing mission: " + mission['name'])
         for n, workflow in enumerate(workflows):
             colp.sys_print("executing workflow number: " + str(n+1))
-            execute_workflow(workflow, operation['kit_folder'], vars)
+            execute_workflow(workflow, operation['kit_folder'], vars, alias)
