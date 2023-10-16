@@ -42,7 +42,6 @@ def execute_workflow(workflow, kits, vars):
 if __name__ == "__main__":
     #overrides exceptions to print in red color
     sys.excepthook = lambda type, value, tb: sys.stderr.write(colp.color_text(colp.RED, ''.join(traceback.format_exception(type, value, tb))))
-    raise Exception("Some error")
 
     # TODO alias functions - new section in mission files - allow kit.module.function names to be shortened to just 1 word
     colp.sys_print(LOGO_TEXT)
