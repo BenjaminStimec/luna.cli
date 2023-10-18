@@ -6,12 +6,16 @@
     "alias": {
         "greet": "sample_kit1.module1.greet",
         "capitalize": "sample_kit1.module2.capitalize",
-        "save_to_file": "sample_kit2.module2.save_to_file"
+        "save_to_file": "sample_kit2.module2.save_to_file",
+        "test_json": "sample_kit2.module2.test_at_json"
     },
     "workflows": [
         "sample_kit1.module1.greet($name_var:J{$.abc})=>sample_kit2.module2.save_to_file(%, 'output.txt')",
         "greet($name_var)=>$abc(%)=>capitalize(%)=>sample_kit2.module1.reverse(%)=>sample_kit2.module2.save_to_file(%, '1output.txt')",
 	    "greet($name_var:J{$.abc})=>save_to_file(%, '2output.txt')",
-	    "sample_kit1.module1.greet('==> $/abc')=>sample_kit2.module2.save_to_file(%, '3output.txt')"
+	    "sample_kit1.module1.greet('==> $/abc')=>sample_kit2.module2.save_to_file(%, '3output.txt')",
+        "save_to_file(@file('test.txt'),'file_test.txt')",
+        "test_json(@json('test.txt'))=>save_to_file(%,'json_test.txt')",
+        "save_to_file(@html('https://raw.githubusercontent.com/BenjaminStimec/luna.cli/main/README.md'),'html_test.txt')"
     ]
 }

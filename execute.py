@@ -5,6 +5,7 @@ from lxml import etree
 from jsonpath_ng import jsonpath, parse
 from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token, FunctionIdentifier, Alias, FunctionCall, Step
 import functools
+from data_stream import data_stream_parsers
 
 LRU_CACHE_LIMIT = None
 
@@ -96,14 +97,46 @@ def read_kit_instructions(kits,kit):
     try:
         with open(f"{kits}/{kit}/kit_instructions.json","r") as kit_instructions:
             instructions = json.load(kit_instructions)
-    except:
+    except FileNotFoundError:
         raise ValueError(f"kit_instructions.json does not exist in {kits}/{kit}")
+    except Exception as e:
+        raise ValueError(f"An error has occurred: {e}")
     out = dict()
     for module, data in instructions.items():
         out[module] = set()
         for function in data:
             out[module].add(function)
     return out
+
+def parseArgument(arg, vars, last_output):
+    if isinstance(arg, LiteralString) or isinstance(arg, DefaultArg):
+        return arg.content
+    elif isinstance(arg, Variable):
+        if arg.name in vars:
+            data = vars[arg.name]
+            if arg.indexing != '':
+                data = apply_indexing(data, arg.indexing)
+            return data
+        else:
+            raise ValueError(f"Variable {arg.name} is not defined in the vars dictionary")
+    elif isinstance(arg, Token):
+        if(last_output != None):
+            data = last_output
+            if arg.indexing != '':
+                data = apply_indexing(data, arg.indexing)
+            return data
+        else:
+            raise ValueError(f"Last output is not available")
+    elif isinstance(arg,DataStream):
+        if (arg.name in data_stream_parsers):
+            arguments = []
+            for i in arg.args:
+                arguments.append(parseArgument(i, vars, last_output))
+            return data_stream_parsers[arg.name](*arguments)
+        else:
+            raise ValueError(f"@{arg.name} does not exists in data_stream_parser")
+    else:
+        raise ValueError(f"Unknown argument type: {type(arg)}")
 
 def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
     last_output = None
@@ -118,35 +151,18 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
                     raise ValueError(f"Alias is not available")
             else: 
                 kit, module, function = action.identifier.kit, action.identifier.module, action.identifier.function
+            
             if(kit not in kit_instructions):
                 kit_instructions[kit]=read_kit_instructions(kits,kit) 
             if(module not in kit_instructions[kit]):
                 raise ValueError(f"Module '{module}' is either private or does not exist in {kits}/{kit}")
             if(function not in kit_instructions[kit][module]):
                 raise ValueError(f"Function '{function}' is either private or does not exist in {kits}/{kit}/{module}")
+            
             parsed_args = []
             for arg in action.arguments:
-                # TODO: add data stream functionality - @ notation (easy syntax for specifying sources of information examples: @file('path_to_file') @html('path_to_url')
-                if isinstance(arg, LiteralString) or isinstance(arg, DefaultArg):
-                    parsed_args.append(arg.content)
-                elif isinstance(arg, Variable):
-                    if arg.name in vars:
-                        data = vars[arg.name]
-                        if arg.indexing != '':
-                            data = apply_indexing(data, arg.indexing)
-                        parsed_args.append(data)
-                    else:
-                        raise ValueError(f"Variable {arg.name} is not defined in the vars dictionary")
-                elif isinstance(arg, Token):
-                    if(last_output != None):
-                        data = last_output
-                        if arg.indexing != '':
-                            data = apply_indexing(data, arg.indexing)
-                        parsed_args.append(data)
-                    else:
-                        raise ValueError(f"Last output is not available")
-                else:
-                    raise ValueError(f"Unknown argument type: {type(arg)}")
+                parsed_args.append(parseArgument(arg, vars, last_output))
+
             print("imported",kits,kit,module)
             imported_module = importlib.import_module(f"{kits}.{kit}.{module}")
             func_to_call = getattr(imported_module, function)
