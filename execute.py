@@ -1,96 +1,28 @@
 import importlib
 import json
 import pyparsing
-from lxml import etree
-from jsonpath_ng import jsonpath, parse
-from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token, FunctionIdentifier, Alias, FunctionCall, Step
+from parser_types import LiteralString, VariableAssignment, Variable, DataStream, DefaultArg, Token, FunctionIdentifier, Alias, FunctionCall, DefaultIndexString
 import functools
 from data_stream import data_stream_parsers
+from index_handelers import flattened_index_handlers_dict
 
 LRU_CACHE_LIMIT = None
 
-def handle_json(data, indexing):
-    data_to_parse = ""
-    if isinstance(data, str):
-        try:
-            data_to_parse = json.loads(data)
-        except Exception as e:
-            raise ValueError(f'Unsuccessfully tried to convert string to json: {str(data)}, Error: {str(e)}')
-    elif isinstance(data, dict):
-        data_to_parse = data
-    else:
-        raise ValueError(f'Unviable data type for use with JSONPath: {str(data)}')
+def apply_indexing_search(data, prefix, content):
     try:
-        jsonpath_expression = parse(indexing)
-        print(jsonpath_expression)
-    except Exception as e:
-        raise ValueError(f'Incorrect JSONPath expression: {str(indexing)}, Error: {str(e)}')
-    try:
-        matches = jsonpath_expression.find(data_to_parse)
-        print(matches)
-        if len(matches) == 1:
-            return matches[0].value
-        else:
-            return [match.value for match in matches]
-    except Exception as e:
-        raise ValueError(f'Failed JSONPath parsing: {str(data) + str(indexing)}, Error: {str(e)}')
-    
-
-def handle_xml(data, indexing):
-    try:
-        tree = etree.fromstring(data)
-    except Exception as e:
-        raise ValueError(f'Unsuccessfully tried to convert string to XML tree: {str(data)}, Error: {str(e)}')
-    try:
-        matches = tree.xpath(indexing)
-        if len(matches) == 1:
-            return matches[0].text if isinstance(matches[0], etree._Element) else matches[0]
-        else:
-            return [match.text if isinstance(match, etree._Element) else match for match in matches]
-    except Exception as e:
-        raise ValueError(f'Failed XPath parsing: {str(data) + indexing}, Error: {str(e)}')
-
-
-def handle_list(data, indexing):
-    if not isinstance(data, list):
-        raise ValueError(f'Expected a list, but got: {type(data).__name__}')
-    
-    index_exprs = indexing.split(',')
-    result = []
-    for expr in index_exprs:
-        if '-' in expr:
-            try:
-                start, end = map(int, expr.split('-'))
-            except ValueError as e:
-                raise ValueError(f'Invalid range expression: {expr}, Error: {str(e)}')
-            if start >= len(data) or end >= len(data) or start > end:
-                raise ValueError(f'Invalid range: {expr}, List length: {len(data)}')
-
-            result.extend(data[start:end + 1])
-        else:
-            try:
-                index = int(expr)
-            except ValueError as e:
-                raise ValueError(f'Invalid index expression: {expr}, Error: {str(e)}')
-            if index >= len(data):
-                raise ValueError(f'Index out of range: {index}, List length: {len(data)}')
-
-            result.append(data[index])
-    return result
-
-def apply_indexing(data, indexing):
-    expr_type_prefix = indexing[0]
-    expr_string = ''.join(indexing[2:-1])
-    dispatch_dict = {
-        'J': handle_json,
-        'X': handle_xml,
-        'L': handle_list
-    }
-    try:
-        handler = dispatch_dict[expr_type_prefix]
+        handler = flattened_index_handlers_dict[prefix.upper()][0]
     except KeyError:
-        raise ValueError(f'Unknown expression type prefix: {expr_type_prefix}')
-    return handler(data, expr_string)
+        raise ValueError(f'Unknown expression type prefix: {prefix}')
+    
+    return handler(data, content)
+
+def apply_indexing_assign(data, prefix, content, value):
+    try:
+        handler = flattened_index_handlers_dict[prefix.upper()][1]
+    except KeyError:
+        raise ValueError(f'Unknown expression type prefix: {prefix}')
+    
+    return handler(data, content, value)
 
 @functools.lru_cache(maxsize=LRU_CACHE_LIMIT)
 def read_kit_instructions(kits,kit):
@@ -109,13 +41,13 @@ def read_kit_instructions(kits,kit):
     return out
 
 def parseArgument(arg, vars, last_output):
-    if isinstance(arg, LiteralString) or isinstance(arg, DefaultArg):
+    if isinstance(arg, LiteralString) or isinstance(arg, DefaultArg) or isinstance(arg, DefaultIndexString):
         return arg.content
     elif isinstance(arg, Variable):
         if arg.name in vars:
             data = vars[arg.name]
             if arg.indexing != '':
-                data = apply_indexing(data, arg.indexing)
+                data = apply_indexing_search(data, arg.indexing.prefix, parseArgument(arg.indexing.content, vars, last_output))
             return data
         else:
             raise ValueError(f"Variable {arg.name} is not defined in the vars dictionary")
@@ -123,7 +55,7 @@ def parseArgument(arg, vars, last_output):
         if(last_output != None):
             data = last_output
             if arg.indexing != '':
-                data = apply_indexing(data, arg.indexing)
+                data = apply_indexing_search(data, arg.indexing.prefix, parseArgument(arg.indexing.content, vars, last_output))
             return data
         else:
             raise ValueError(f"Last output is not available")
@@ -168,7 +100,16 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
             func_to_call = getattr(imported_module, function)
             last_output = func_to_call(*parsed_args)
         elif isinstance(action, VariableAssignment):
-            if(last_output != None):
-                vars[action.var_name] = last_output
+            if(action.indexing != ''):
+                vars[action.var_name] = apply_indexing_assign(vars[action.var_name], action.indexing.prefix, parseArgument(action.indexing.content, vars, last_output), parseArgument(action.value, vars, last_output))
             else:
-                raise ValueError(f"Last output is not available")
+                vars[action.var_name] = parseArgument(action.value, vars, last_output)
+            last_output = vars[action.var_name]
+        elif isinstance(action, DataStream):
+            if (action.name in data_stream_parsers):
+                arguments = []
+                for i in action.args:
+                    arguments.append(parseArgument(i, vars, last_output))
+                last_output = data_stream_parsers[action.name](*arguments)
+            else:
+                raise ValueError(f"@{action.name} does not exists in data_stream_parser")

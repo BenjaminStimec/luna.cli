@@ -1,7 +1,8 @@
 {
     "name": "SampleMission",
     "vars": {
-        "name_var": {"abc":123}
+        "name_var": {"abc":123},
+        "abc" : "TEST123"
     },
     "alias": {
         "greet": "sample_kit1.module1.greet",
@@ -16,6 +17,7 @@
 	    "sample_kit1.module1.greet('==> $/abc')=>sample_kit2.module2.save_to_file(%, '3output.txt')",
         "save_to_file(@file('test.txt'),'file_test.txt')",
         "test_json(@json('test.txt'))=>save_to_file(%,'json_test.txt')",
-        "save_to_file(@html('https://raw.githubusercontent.com/BenjaminStimec/luna.cli/main/README.md'),'html_test.txt')"
+        "save_to_file(@html('https://raw.githubusercontent.com/BenjaminStimec/luna.cli/main/README.md'),'html_test.txt')",
+        "@html('http://web.simmons.edu/~grovesd/comm244/notes/week3/html-test-page.html')=>$abc(%)=>$abc:H{p}('testtest')=>save_to_file(%,'html_test2.txt')"
     ]
 }
