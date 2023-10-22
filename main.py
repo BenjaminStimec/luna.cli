@@ -39,6 +39,7 @@ def load_operation(filename):
 def execute_workflow(workflow, kits, vars, alias):
     try:
         parsed_workflow = parser.workflow.parseString(workflow)
+        print(parsed_workflow)
     except pyparsing.ParseException as e:
         print(f"Failed to parse workflow at position {e.loc}. Unmatched text: {workflow[e.loc:]}")
         sys.exit(1)

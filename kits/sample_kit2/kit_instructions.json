@@ -27,6 +27,17 @@
             },
             "output": "None",
             "action": "Saving text to a specified file"
+        },
+        "test_at_json": {
+            "description": "A test function for @ notation",
+            "args": {
+                "json": {
+                    "type": "json",
+                    "description": "Json object"
+                }
+            },
+            "output": "string",
+            "action": "returns test json argument"
         }
     }
 }

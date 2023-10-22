@@ -9,7 +9,8 @@ Luna.cli is a platform aiming to automate and enhance tasks ranging from everyda
 - [Mission File](#mission-file)
 - [Workflow Syntax and Execution](#workflow-syntax-and-execution)
 - [Kit Folder](#kit-folder)
-- [Kit Instruction Files](#kit-instruction-files)
+- [Kit Instruction Files](#kit-instruction-files),
+- [@ Notation](#-notation)
 
 ## Setup Guide
 
@@ -83,3 +84,10 @@ kit_instructions.json
     }
 }
 </pre>
+## @ Notation
+
+@ notation is a special syntax used to perform specific pre-defined actions easily.
+Currently supported special functions are:
+- `@file('path_to_file')` - This function is used to read the contents of a local file. It retrieves and returns the data stored within the specified file.
+- `@json('path_to_file')` - The "@json" function is designed to read and parse a local JSON file. It takes the filename as an input and extracts the structured data from the JSON file, making it accessible for further processing or manipulation within a program. 
+- `@html('url')` - This function is used to retrieve and return the content of a webpage. When provided with the URL of a web page, it fetches the content of that page, which can be useful for web scraping, data extraction, or other web-related tasks.
