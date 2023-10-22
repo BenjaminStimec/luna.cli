@@ -3,6 +3,7 @@ import os
 import parser
 import execute
 import color_printing as colp
+from color_printing import sys_print
 import sys, traceback
 import pyparsing
 
@@ -57,15 +58,15 @@ if __name__ == "__main__":
     sys.excepthook = lambda type, value, tb: sys.stderr.write(colp.color_text(colp.RED, ''.join(traceback.format_exception(type, value, tb))))
 
     # TODO alias functions - new section in mission files - allow kit.module.function names to be shortened to just 1 word
-    colp.sys_print(LOGO_TEXT)
+    sys_print(LOGO_TEXT)
     operation = load_operation("operation.json")
-    colp.sys_print("starting operation: " + operation['name'])
+    sys_print("starting operation: " + operation['name'])
     missions = load_all_missions(operation)
     for mission in missions:
         vars = mission.get("vars", {})
         alias = parse_alias(mission)
         workflows = mission["workflows"]
-        colp.sys_print("executing mission: " + mission['name'])
+        sys_print("executing mission: " + mission['name'])
         for n, workflow in enumerate(workflows):
-            colp.sys_print("executing workflow number: " + str(n+1))
+            sys_print("executing workflow number: " + str(n+1))
             execute_workflow(workflow, operation['kit_folder'], vars, alias)
