@@ -1,0 +1,27 @@
+# .github/workflows/move-to-testing.yml
+
+name: YouTrack Automation
+on:
+  pull_request:
+    types: [opened, closed]
+jobs:
+  move-to-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update YouTrack Issue
+        uses: ckotzbauer/youtrack-script-action@1.2.0
+        with:
+          youtrack-url: ${{ secrets.YOUTRACK_URL }}
+          youtrack-token: ${{ secrets.YOUTRACK_TOKEN }}
+          script: |
+            const branchName = '${{ github.head_ref }}';
+            const issueIdMatch = branchName.match(/^LC-(\d+)$/);
+            if (issueIdMatch) {
+              const issueId = issueIdMatch[1];
+              const issue = entities.Issue.findById(issueId);
+              if (context.payload.action === 'opened') {
+                issue.fields.State = entities.State.findByName('Testing');
+              } else if (context.payload.action === 'closed' && context.payload.pull_request.merged) {
+                issue.fields.State = entities.State.findByName('Done');
+              }
+            }
