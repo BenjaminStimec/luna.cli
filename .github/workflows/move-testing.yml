@@ -1,0 +1,8 @@
+# .github/workflows/move-to-testing.yml
+
+name: Move Issue to Testing
+on:
+  pull_request:
+    types: [opened]
+jobs:
+  move-to-testing:
