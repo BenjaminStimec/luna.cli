@@ -25,20 +25,26 @@ def apply_indexing_assign(data, prefix, content, value):
     return handler(data, content, value)
 
 @functools.lru_cache(maxsize=LRU_CACHE_LIMIT)
-def read_kit_instructions(kits,kit):
+def read_kit_instructions(kits, kit):
     try:
-        with open(f"{kits}/{kit}/kit_instructions.json","r") as kit_instructions:
+        with open(f"{kits}/{kit}/kit_instructions.json", "r") as kit_instructions:
             instructions = json.load(kit_instructions)
     except FileNotFoundError:
         raise ValueError(f"kit_instructions.json does not exist in {kits}/{kit}")
     except Exception as e:
         raise ValueError(f"An error has occurred: {e}")
+
     out = dict()
-    for module, data in instructions.items():
-        out[module] = set()
-        for function in data:
-            out[module].add(function)
+    for module, functions in instructions.items():
+        out[module] = {}
+        for function_name, function_data in functions.items():
+            out[module][function_name] = {
+                'args': function_data.get('args', {}),
+                'output': function_data.get('output'),
+                'action': function_data.get('action')
+            }
     return out
+
 
 def parseArgument(arg, vars, last_output):
     if isinstance(arg, LiteralString) or isinstance(arg, DefaultArg) or isinstance(arg, DefaultIndexString):
@@ -69,6 +75,9 @@ def parseArgument(arg, vars, last_output):
             raise ValueError(f"@{arg.name} does not exists in data_stream_parser")
     else:
         raise ValueError(f"Unknown argument type: {type(arg)}")
+
+def function_call(kit, module, function, parsed_args, list_of_types):
+    pass
 
 def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
     last_output = None
