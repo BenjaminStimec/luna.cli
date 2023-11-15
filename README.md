@@ -1,5 +1,4 @@
 ![LunaAI Logo](resources/LunaAI_logo.svg)
-# LUNA.CLI
 
 Luna.cli is a platform aiming to automate and enhance tasks ranging from everyday chores to enterprise business processes. It relies on Python to perform actions and interact with external system and allows you to use existing python libraries and write new code. To simplify automation it also relies on LLMs to serve as adapters between functions, to fill in missing data from external sources, or to execute complex tasks using data and functions provided by the user.
 
