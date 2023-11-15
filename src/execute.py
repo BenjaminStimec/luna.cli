@@ -39,6 +39,7 @@ def read_kit_instructions(kits, kit):
         out[module] = {}
         for function_name, function_data in functions.items():
             out[module][function_name] = {
+                'description': function_data.get('description'),  # Add this line
                 'args': function_data.get('args', {}),
                 'output': function_data.get('output'),
                 'action': function_data.get('action')
@@ -46,14 +47,14 @@ def read_kit_instructions(kits, kit):
     return out
 
 
-def parseArgument(arg, vars, last_output):
+def parse_argument(arg, vars, last_output):
     if isinstance(arg, LiteralString) or isinstance(arg, DefaultArg) or isinstance(arg, DefaultIndexString):
         return arg.content
     elif isinstance(arg, Variable):
         if arg.name in vars:
             data = vars[arg.name]
             if arg.indexing != '':
-                data = apply_indexing_search(data, arg.indexing.prefix, parseArgument(arg.indexing.content, vars, last_output))
+                data = apply_indexing_search(data, arg.indexing.prefix, parse_argument(arg.indexing.content, vars, last_output))
             return data
         else:
             raise ValueError(f"Variable {arg.name} is not defined in the vars dictionary")
@@ -61,7 +62,7 @@ def parseArgument(arg, vars, last_output):
         if(last_output != None):
             data = last_output
             if arg.indexing != '':
-                data = apply_indexing_search(data, arg.indexing.prefix, parseArgument(arg.indexing.content, vars, last_output))
+                data = apply_indexing_search(data, arg.indexing.prefix, parse_argument(arg.indexing.content, vars, last_output))
             return data
         else:
             raise ValueError(f"Last output is not available")
@@ -69,15 +70,36 @@ def parseArgument(arg, vars, last_output):
         if (arg.name in data_stream_parsers):
             arguments = []
             for i in arg.args:
-                arguments.append(parseArgument(i, vars, last_output))
+                arguments.append(parse_argument(i, vars, last_output))
             return data_stream_parsers[arg.name](*arguments)
         else:
             raise ValueError(f"@{arg.name} does not exists in data_stream_parser")
     else:
         raise ValueError(f"Unknown argument type: {type(arg)}")
+    
+def translate(input_data, target_type):
+    input_type = type(input_data).__name__
+    translator_module = f"translators.{input_type}_translator"
 
-def function_call(kit, module, function, parsed_args, list_of_types):
-    pass
+    # if types match return as is
+    if input_type == target_type:
+        return input_data
+    try:
+        translator = importlib.import_module(translator_module)
+    except ImportError:
+        raise ValueError(f"No translator available for type {input_type}")
+    
+    translate_func = getattr(translator, f"translate_{input_type}", None)
+    if translate_func is None:
+        raise ValueError(f"Translator for {input_type} does not support conversion to {target_type}")
+
+    return translate_func(input_data, target_type)
+
+def function_call(kits, kit, module, function, parsed_args):
+    imported_module = importlib.import_module(f"{kits}.{kit}.{module}")
+    func_to_call = getattr(imported_module, function)
+    last_output = func_to_call(*parsed_args)
+    return last_output
 
 def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
     last_output = None
@@ -92,33 +114,36 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
                     raise ValueError(f"Alias is not available")
             else: 
                 kit, module, function = action.identifier.kit, action.identifier.module, action.identifier.function
-            
+
             if(kit not in kit_instructions):
                 kit_instructions[kit]=read_kit_instructions(kits,kit) 
             if(module not in kit_instructions[kit]):
                 raise ValueError(f"Module '{module}' is either private or does not exist in {kits}/{kit}")
             if(function not in kit_instructions[kit][module]):
                 raise ValueError(f"Function '{function}' is either private or does not exist in {kits}/{kit}/{module}")
-            
-            parsed_args = []
-            for arg in action.arguments:
-                parsed_args.append(parseArgument(arg, vars, last_output))
 
-            print("imported",kits,kit,module)
-            imported_module = importlib.import_module(f"{kits}.{kit}.{module}")
-            func_to_call = getattr(imported_module, function)
-            last_output = func_to_call(*parsed_args)
+            func_args_spec = kit_instructions[kit][module][function].get('args', {})
+            parsed_args = []
+            for arg_name, arg in zip(func_args_spec, action.arguments):
+                target_type = func_args_spec[arg_name].get('type')
+                translated_arg = translate(parse_argument(arg, vars, last_output), target_type)
+                parsed_args.append(translated_arg)
+
+            output = function_call(kits, kit, module, function, parsed_args)
+            if output:
+                last_output = output
+            
         elif isinstance(action, VariableAssignment):
             if(action.indexing != ''):
-                vars[action.var_name] = apply_indexing_assign(vars[action.var_name], action.indexing.prefix, parseArgument(action.indexing.content, vars, last_output), parseArgument(action.value, vars, last_output))
+                vars[action.var_name] = apply_indexing_assign(vars[action.var_name], action.indexing.prefix, parse_argument(action.indexing.content, vars, last_output), parse_argument(action.value, vars, last_output))
             else:
-                vars[action.var_name] = parseArgument(action.value, vars, last_output)
+                vars[action.var_name] = parse_argument(action.value, vars, last_output)
             last_output = vars[action.var_name]
         elif isinstance(action, DataStream):
             if (action.name in data_stream_parsers):
                 arguments = []
                 for i in action.args:
-                    arguments.append(parseArgument(i, vars, last_output))
+                    arguments.append(parse_argument(i, vars, last_output))
                 last_output = data_stream_parsers[action.name](*arguments)
             else:
                 raise ValueError(f"@{action.name} does not exists in data_stream_parser")
