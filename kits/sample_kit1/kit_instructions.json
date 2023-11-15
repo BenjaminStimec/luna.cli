@@ -4,7 +4,7 @@
             "description": "Greets the person with their name",
             "args": {
                 "name": {
-                    "type": "string",
+                    "type": "str",
                     "description": "The name of the person to greet"
                 }
             },
@@ -17,12 +17,69 @@
             "description": "Converts the given text to uppercase",
             "args": {
                 "text": {
-                    "type": "string",
+                    "type": "str",
                     "description": "The text to capitalize"
                 }
             },
             "output": "The capitalized text",
             "action": "Converting text to uppercase"
+        }
+    },
+    "translation_test_module": {
+        "accept_integer": {
+            "description": "Accepts an integer value",
+            "args": {
+                "value": {
+                    "type": "int",
+                    "description": "The integer value to accept"
+                }
+            },
+            "output": "Confirmation message for integer",
+            "action": "Accepting an integer value"
+        },
+        "accept_boolean": {
+            "description": "Accepts a boolean value",
+            "args": {
+                "value": {
+                    "type": "bool",
+                    "description": "The boolean value to accept"
+                }
+            },
+            "output": "Confirmation message for boolean",
+            "action": "Accepting a boolean value"
+        },
+        "accept_dictionary": {
+            "description": "Accepts a dictionary",
+            "args": {
+                "value": {
+                    "type": "dict",
+                    "description": "The dictionary to accept"
+                }
+            },
+            "output": "Confirmation message for dictionary",
+            "action": "Accepting a dictionary"
+        },
+        "accept_bytes": {
+            "description": "Accepts bytes",
+            "args": {
+                "value": {
+                    "type": "bytes",
+                    "description": "The bytes to accept"
+                }
+            },
+            "output": "Confirmation message for bytes",
+            "action": "Accepting bytes"
+        },
+        "accept_complex": {
+            "description": "Accepts a complex number",
+            "args": {
+                "value": {
+                    "type": "complex",
+                    "description": "The complex number to accept"
+                }
+            },
+            "output": "Confirmation message for complex number",
+            "action": "Accepting a complex number"
         }
     }
 }

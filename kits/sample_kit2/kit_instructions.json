@@ -4,7 +4,7 @@
             "description": "Reverses the given text",
             "args": {
                 "text": {
-                    "type": "string",
+                    "type": "str",
                     "description": "The text to reverse"
                 }
             },
@@ -17,11 +17,11 @@
             "description": "Saves text to a file",
             "args": {
                 "text": {
-                    "type": "string",
+                    "type": "str",
                     "description": "The text to save"
                 },
                 "file_name": {
-                    "type": "string",
+                    "type": "str",
                     "description": "The name of the file to save the text in"
                 }
             },
@@ -32,7 +32,7 @@
             "description": "A test function for @ notation",
             "args": {
                 "json": {
-                    "type": "json",
+                    "type": "dict",
                     "description": "Json object"
                 }
             },

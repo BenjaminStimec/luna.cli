@@ -1,9 +1,12 @@
 import json
 import os
-import parser
+import workflow_parser
 import execute
 import pyparsing
 import sys
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
 
 LOGO_TEXT = r"""
   ___     ___ ___ ______  _______    _______ ___     ___
@@ -36,8 +39,7 @@ def load_operation(filename):
 
 def execute_workflow(workflow, kits, vars, alias):
     try:
-        parsed_workflow = parser.workflow.parseString(workflow)
-        print(parsed_workflow)
+        parsed_workflow = workflow_parser.workflow.parseString(workflow)
     except pyparsing.ParseException as e:
         print(f"Failed to parse workflow at position {e.loc}. Unmatched text: {workflow[e.loc:]}")
         sys.exit(1)
@@ -47,7 +49,7 @@ def execute_workflow(workflow, kits, vars, alias):
 def parse_alias(mission):
     alias = mission.get("alias", {})
     for name in alias:
-        alias[name] = parser.function_identifier.parseString(alias[name])[0]
+        alias[name] = workflow_parser.function_identifier.parseString(alias[name])[0]
     return alias
 
 if __name__ == "__main__":

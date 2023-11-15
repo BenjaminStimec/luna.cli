@@ -8,16 +8,24 @@
         "greet": "sample_kit1.module1.greet",
         "capitalize": "sample_kit1.module2.capitalize",
         "save_to_file": "sample_kit2.module2.save_to_file",
-        "test_json": "sample_kit2.module2.test_at_json"
+        "test_json": "sample_kit2.module2.test_at_json",
+        "accept_integer": "sample_kit1.translation_test_module.accept_integer",
+        "accept_boolean": "sample_kit1.translation_test_module.accept_boolean",
+        "accept_dictionary": "sample_kit1.translation_test_module.accept_dictionary",
+        "accept_bytes": "sample_kit1.translation_test_module.accept_bytes",
+        "accept_complex": "sample_kit1.translation_test_module.accept_complex"
     },
     "workflows": [
         "sample_kit1.module1.greet($name_var:J{$.abc})=>sample_kit2.module2.save_to_file(%, 'output.txt')",
         "greet($name_var)=>$abc(%)=>capitalize(%)=>sample_kit2.module1.reverse(%)=>sample_kit2.module2.save_to_file(%, '1output.txt')",
 	    "greet($name_var:J{$.abc})=>save_to_file(%, '2output.txt')",
 	    "sample_kit1.module1.greet('==> $/abc')=>sample_kit2.module2.save_to_file(%, '3output.txt')",
-        "save_to_file(@file('test.txt'),'file_test.txt')",
-        "test_json(@json('test.txt'))=>save_to_file(%,'json_test.txt')",
         "save_to_file(@html('https://raw.githubusercontent.com/BenjaminStimec/luna.cli/main/README.md'),'html_test.txt')",
-        "@html('http://web.simmons.edu/~grovesd/comm244/notes/week3/html-test-page.html')=>$abc(%)=>$abc:H{p}('testtest')=>save_to_file(%,'html_test2.txt')"
+        "@html('http://web.simmons.edu/~grovesd/comm244/notes/week3/html-test-page.html')=>$abc(%)=>$abc:H{p}('testtest')=>save_to_file(%,'html_test2.txt')",
+        "accept_integer('123')=>sample_kit2.module2.save_to_file(%, 'integer_test_output.txt')",
+        "accept_boolean('true')=>sample_kit2.module2.save_to_file(%, 'boolean_test_output.txt')",
+        "accept_dictionary('{\"key\": \"value\"}')=>sample_kit2.module2.save_to_file(%, 'dictionary_test_output.txt')",
+        "accept_bytes('SGVsbG8gV29ybGQ=')=>sample_kit2.module2.save_to_file(%, 'bytes_test_output.txt')",
+        "accept_complex('1+2j')=>sample_kit2.module2.save_to_file(%, 'complex_test_output.txt')"
     ]
 }
