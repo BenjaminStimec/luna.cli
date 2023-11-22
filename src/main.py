@@ -71,6 +71,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--operation-file", type=str, help="Path to the operation file")
     parser.add_argument("-m", "--missions", type=str, nargs="+", help="Paths to mission files")
     parser.add_argument("-k", "--kits", type=str, nargs="+", help="Paths to kit folders")
+    parser.add_argument("-mf", "--mission-folder", type=str, help="Path to folder that has mission files (overwrites operation file 'mission_folder')")
+    parser.add_argument("-kf", "--kit-folder", type=str, help="Path to folder that has kits (overwrites operation file 'kit_folder')")
 
     args = parser.parse_args()
 
@@ -79,6 +81,11 @@ if __name__ == "__main__":
     else:
         operation_file = args.operation_file or "operation.json"
         operation = load_operation(operation_file)
+    
+    if args.kit_folder:
+        operation["kit_folder"] = args.kit_folder
+    if args.mission_folder
+        operation["mission_folder"] = args.mission_folder
 
     if not operation:
         operation["name"] =  args.name or "Unknown operation "+str(datetime.now())
