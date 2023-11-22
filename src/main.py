@@ -69,8 +69,8 @@ if __name__ == "__main__":
 
     parser.add_argument("-n", "--name", type=str, help="Name of the mission")
     parser.add_argument("-o", "--operation-file", type=str, help="Path to the operation file")
-    parser.add_argument("-m", "--mission-files", type=str, nargs="+", help="Paths to mission files")
-    parser.add_argument("-k", "--kit-folders", type=str, nargs="+", help="Paths to kit folders")
+    parser.add_argument("-m", "--missions", type=str, nargs="+", help="Paths to mission files")
+    parser.add_argument("-k", "--kits", type=str, nargs="+", help="Paths to kit folders")
 
     args = parser.parse_args()
 
@@ -82,16 +82,22 @@ if __name__ == "__main__":
 
     if not operation:
         operation["name"] =  args.name or "Unknown operation "+str(datetime.now())
+        
+    if("kits" not in operation):
+        operation["kits"] = []
 
-    if("missions" not in operation and args.mission_files):
-        operation["missions"] = args.mission_files
-    elif args.mission_files:
-        operation["missions"] += args.mission_files
+    if("missions" not in operation and args.missions):
+        operation["missions"] = args.missions
+    elif args.missions:
+        operation["missions"] += args.missions
 
-    if("kits" not in operation and args.kit_folders):
-        operation["kits"] = args.kit_folders
-    elif args.kit_folders:
-        operation["kits"] += args.kit_folders
+    if("kits" not in operation and args.kits):
+        operation["kits"] = args.kits
+    elif args.kits:
+        operation["kits"] += args.kits
+    else:
+        operation["kits"] = []
+
     print(operation)
     print("starting operation: " + operation['name'])
     missions = load_all_missions(operation)
@@ -103,4 +109,4 @@ if __name__ == "__main__":
         print("executing mission: " + mission['name'])
         for n, workflow in enumerate(workflows):
             print("executing workflow number: " + str(n+1))
-            execute_workflow(workflow, operation['kit_folder'], vars, alias)
+            execute_workflow(workflow, (operation['kit_folder'],operation["kits"]), vars, alias)
