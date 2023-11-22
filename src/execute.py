@@ -25,12 +25,12 @@ def apply_indexing_assign(data, prefix, content, value):
     return handler(data, content, value)
 
 @functools.lru_cache(maxsize=LRU_CACHE_LIMIT)
-def read_kit_instructions(kits, kit):
+def read_kit_instructions(kit_path):
     try:
-        with open(f"{kits}/{kit}/kit_instructions.json", "r") as kit_instructions:
+        with open(f"{kit_path}/kit_instructions.json", "r") as kit_instructions:
             instructions = json.load(kit_instructions)
     except FileNotFoundError:
-        raise ValueError(f"kit_instructions.json does not exist in {kits}/{kit}")
+        raise ValueError(f"kit_instructions.json does not exist in {kit_path}")
     except Exception as e:
         raise ValueError(f"An error has occurred: {e}")
 
@@ -95,8 +95,8 @@ def translate(input_data, target_type):
 
     return translate_func(input_data, target_type)
 
-def function_call(kits, kit, module, function, parsed_args):
-    imported_module = importlib.import_module(f"{kits}.{kit}.{module}")
+def function_call(kit, module, function, parsed_args):
+    imported_module = importlib.import_module(f"{kit}.{module}")
     func_to_call = getattr(imported_module, function)
     last_output = func_to_call(*parsed_args)
     return last_output
@@ -104,6 +104,10 @@ def function_call(kits, kit, module, function, parsed_args):
 def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
     last_output = None
     kit_instructions = dict() # cache so that each kit instruction is only parsed once
+    kits_paths = dict()
+    for i in kits[1]:
+        temp = i.split("/")
+        kits_paths[temp[-1]] = i
     for action in parsed_workflow:
         if isinstance(action, FunctionCall):
             if isinstance(action.identifier, Alias):
@@ -114,9 +118,16 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
                     raise ValueError(f"Alias is not available")
             else: 
                 kit, module, function = action.identifier.kit, action.identifier.module, action.identifier.function
-
+            
             if(kit not in kit_instructions):
-                kit_instructions[kit]=read_kit_instructions(kits,kit) 
+                if kit in kits_paths:
+                    kit_path = kits_paths[kit]  
+                elif kits[0]:
+                    kit_path = f"{kits[0]}/{kit}"
+                else:
+                    raise ValueError(f"Kit {kit} has not been found")
+                kit_instructions[kit]=read_kit_instructions(kit_path)
+                kit_path = kit_path.replace("/",".")
             if(module not in kit_instructions[kit]):
                 raise ValueError(f"Module '{module}' is either private or does not exist in {kits}/{kit}")
             if(function not in kit_instructions[kit][module]):
@@ -129,7 +140,7 @@ def execute_parsed_workflow(parsed_workflow, kits, vars, alias):
                 translated_arg = translate(parse_argument(arg, vars, last_output), target_type)
                 parsed_args.append(translated_arg)
 
-            output = function_call(kits, kit, module, function, parsed_args)
+            output = function_call(kit_path, module, function, parsed_args)
             if output:
                 last_output = output
             
